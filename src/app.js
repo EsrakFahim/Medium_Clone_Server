@@ -17,7 +17,10 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" })); // Support for U
 app.use(express.static("public")); // Serve static files from 'public' directory
 
 import imageRoute from "../src/routes/image.route.js";
+import blogRoute from "../src/routes/blog.route.js";
 
 app.use("/api/v1/image", imageRoute);
+
+app.use("/api/v1/blog", blogRoute);
 
 export { app };
