@@ -30,6 +30,8 @@ const uploadBlog = asyncHandler(async (req, res) => {
             );
       }
 
+      console.log(req.files);
+
       try {
             // Check if project image is uploaded
             const projectImagePath = req.files.blogCoverImage[0].path;
@@ -51,14 +53,18 @@ const uploadBlog = asyncHandler(async (req, res) => {
                         "Error uploading project cover image"
                   );
 
+            console.log(projectCoverImageUpload);
+
             // Create and save the blog post
             const blog = await Blog.create({
                   title,
                   subtitle,
                   content,
-                  tags,
-                  coverImage: projectCoverImageUpload,
+                  tags: tags || [],
+                  blogCoverImage: projectCoverImageUpload?.secure_url,
             });
+
+            console.log("Blog", blog);
 
             if (!blog) {
                   return apiErrorHandler(500, "Failed to upload blog");
@@ -74,7 +80,7 @@ const uploadBlog = asyncHandler(async (req, res) => {
             // Handle server-side errors
             throw new apiErrorHandler(
                   500,
-                  "Internal server error",
+                  // "Internal server error",
                   error.message
             );
       }

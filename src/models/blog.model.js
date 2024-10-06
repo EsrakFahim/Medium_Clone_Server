@@ -26,6 +26,10 @@ const blogSchema = new Schema(
                   required: [true, "At least one tag is required"],
                   validate: [arrayLimit, "{PATH} exceeds the limit of 10"], // Custom validation for max tags
             },
+            blogCoverImage: {
+                  type: String,
+                  required: [true, "Blog cover image is required"],
+            },
             slug: {
                   type: String,
                   unique: true, // Ensure uniqueness for SEO purposes

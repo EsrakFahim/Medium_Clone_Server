@@ -2,6 +2,7 @@ import { Router } from "express";
 import { uploadBlog } from "../controllers/Blogs/UploadBlog.controller.js";
 import { getBlogs } from "../controllers/Blogs/getBlogs.controller.js";
 import { singleBlog } from "../controllers/Blogs/singleBlog.controller.js";
+import { upload } from "../middlewares/multer.middlewares.js";
 
 const router = Router();
 
