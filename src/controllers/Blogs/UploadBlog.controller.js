@@ -1,3 +1,4 @@
+import { uploadFileCloudinary } from "../../FileHandler/Upload.js";
 import { Blog } from "../../models/blog.model.js";
 import { apiErrorHandler } from "../../utils/apiErrorHandler.js";
 import { apiResponse } from "../../utils/apiResponse.js";
@@ -8,34 +9,59 @@ const uploadBlog = asyncHandler(async (req, res) => {
 
       // Validate input fields
       if (!title) {
-            throw new apiErrorHandler(res, 400, "Blog title is required");
+            throw new apiErrorHandler(400, "Blog title is required");
       }
       if (!subtitle) {
-            throw new apiErrorHandler(res, 400, "Blog subtitle is required");
+            throw new apiErrorHandler(400, "Blog subtitle is required");
       }
       if (!content) {
-            throw new apiErrorHandler(res, 400, "Blog content is required");
+            throw new apiErrorHandler(400, "Blog content is required");
       }
       if (!Array.isArray(tags) || tags.length === 0) {
-            throw new apiErrorHandler(res, 400, "At least one tag is required");
+            throw new apiErrorHandler(400, "At least one tag is required");
       }
 
       // Check for duplicate blog title
       const existingBlog = await Blog.findOne({ title });
       if (existingBlog) {
             throw new apiErrorHandler(
-                  res,
                   409,
                   "A blog with this title already exists"
             );
       }
 
       try {
+            // Check if project image is uploaded
+            const projectImagePath = req.files.blogCoverImage[0].path;
+
+            if (!projectImagePath)
+                  throw new apiErrorHandler(
+                        400,
+                        "Validation Error",
+                        "Project cover image is required"
+                  );
+
+            const projectCoverImageUpload =
+                  await uploadFileCloudinary(projectImagePath);
+
+            if (!projectCoverImageUpload)
+                  throw new apiErrorHandler(
+                        500,
+                        "Internal Server Error",
+                        "Error uploading project cover image"
+                  );
+
             // Create and save the blog post
-            const blog = await Blog.create({ title, subtitle, content, tags });
+            const blog = await Blog.create({
+                  title,
+                  subtitle,
+                  content,
+                  tags,
+                  coverImage: projectCoverImageUpload,
+            });
 
             if (!blog) {
-                  return apiErrorHandler(res, 500, "Failed to upload blog");
+                  return apiErrorHandler(500, "Failed to upload blog");
             }
 
             // Return success response
@@ -47,7 +73,6 @@ const uploadBlog = asyncHandler(async (req, res) => {
       } catch (error) {
             // Handle server-side errors
             throw new apiErrorHandler(
-                  res,
                   500,
                   "Internal server error",
                   error.message

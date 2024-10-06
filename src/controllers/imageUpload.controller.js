@@ -4,7 +4,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadFileCloudinary } from "../FileHandler/Upload.js";
 
 const imageUpload = asyncHandler(async (req, res) => {
-      console.log(req.files);
       // Check if project image is uploaded
       const projectImagePath = req.files.blogImage[0].path;
 
