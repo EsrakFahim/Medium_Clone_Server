@@ -8,7 +8,9 @@ const app = express();
 app.use(
       cors({
             origin: process.env.SITE_ORIGIN, // CORS configuration for the specified origin
-            credentials: true, // Allow cookies
+            credentials: true, // Allow cookies and credentials
+            methods: "GET,POST,PUT,DELETE,OPTIONS", // Allowed HTTP methods
+            allowedHeaders: "Content-Type, Authorization", // Allowed headers
       })
 );
 app.use(cookieParser()); // Enable cookie parsing
