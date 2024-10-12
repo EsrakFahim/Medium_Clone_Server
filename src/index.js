@@ -1,28 +1,33 @@
+// index.js
 import dotenv from "dotenv";
 import { connectDB } from "./DB/index.js";
 import { app } from "./app.js";
 
-dotenv.config({
-      path: "./env",
-});
+// Load environment variables (No path needed for Vercel)
+dotenv.config();
 
+const PORT = process.env.PORT || 5050;
 
 connectDB()
       .then(() => {
+            console.log("Connected to MongoDB!");
+
+            // Define routes
             app.get("/", (req, res) => {
                   res.send("Welcome to the API");
             });
 
-            app.listen(process.env.PORT || 5050, () => {
-                  console.log(
-                        `Server running on port ${process.env.PORT || 5050}`
-                  );
+            // Start the server
+            app.listen(PORT, () => {
+                  console.log(`Server running on port ${PORT}`);
             });
 
+            // Handle server errors
             app.on("error", (err) => {
-                  console.log(err);
+                  console.error(`Server Error: ${err.message}`);
             });
       })
       .catch((error) => {
-            console.error(error);
+            console.error(`DB Connection Error: ${error.message}`);
+            process.exit(1); // Exit if DB connection fails
       });
