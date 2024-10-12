@@ -7,7 +7,7 @@ const app = express();
 // Middleware setup
 app.use(
       cors({
-            origin: process.env.SITE_ORIGIN, // CORS configuration for the specified origin
+            origin: 'https://medium-clone-two-chi.vercel.app/', // CORS configuration for the specified origin
             credentials: true, // Allow cookies and credentials
             methods: "GET,POST,PUT,DELETE,OPTIONS", // Allowed HTTP methods
             allowedHeaders: "Content-Type, Authorization", // Allowed headers
