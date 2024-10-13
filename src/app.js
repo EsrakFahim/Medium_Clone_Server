@@ -44,10 +44,5 @@ app.use((err, req, res, next) => {
       res.status(500).send("Something went wrong!");
 });
 
-// Start the Server
-const PORT =  8081;
-app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-});
 
 export { app };
