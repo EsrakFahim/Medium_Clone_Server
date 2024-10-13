@@ -4,27 +4,22 @@ import cors from "cors";
 
 const app = express();
 
-// Global CORS configuration
+// Middleware setup
 app.use(
       cors({
-            origin: ["https://medium-clone-two-chi.vercel.app"], // Allowed origin
-            credentials: true, // Allow cookies and credentials
-            methods: "GET,POST,PUT,DELETE,OPTIONS", // Allowed HTTP methods
-            allowedHeaders: "Content-Type, Authorization", // Required headers
+            origin: process.env.SITE_ORIGIN, // CORS configuration for the specified origin
+            credentials: true, // Allow cookies
       })
 );
-
 app.use(cookieParser()); // Enable cookie parsing
-app.use(express.json({ limit: "50mb" })); // JSON body parsing with size limit
-app.use(express.urlencoded({ extended: true, limit: "50mb" })); // URL-encoded data support
+app.use(express.json({ limit: "50mb" })); // Enable JSON parsing with a size limit
+app.use(express.urlencoded({ extended: true, limit: "50mb" })); // Support for URL-encoded data
+app.use(express.static("public")); // Serve static files from 'public' directory
 
 import imageRoute from "../src/routes/image.route.js";
 import blogRoute from "../src/routes/blog.route.js";
 
 app.use("/api/v1/image", imageRoute);
 app.use("/api/v1/blog", blogRoute);
-
-// Handle preflight requests
-app.options("*", cors());
 
 export { app };
