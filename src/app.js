@@ -8,8 +8,8 @@ const app = express();
 
 // Allowed origins for CORS
 const allowedOrigins = [
-      "https://medium-clone-two-chi.vercel.app", // Production frontend
-      "http://localhost:3000", // Local development frontend
+      process.env.SITE_ORIGIN_PROD, // Production frontend
+      process.env.SITE_ORIGIN_LOCAL, // Local development frontend
 ];
 
 // CORS Middleware (without credentials)
@@ -43,6 +43,5 @@ app.use((err, req, res, next) => {
       console.error(err.stack);
       res.status(500).send("Something went wrong!");
 });
-
 
 export { app };
