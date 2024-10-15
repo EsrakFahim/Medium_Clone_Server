@@ -42,7 +42,11 @@ const userSchema = new Schema(
                   enum: ["user", "admin", "editor", "moderator"],
                   default: "user",
             },
-            profilePicture: { type: String, default: null },
+            profilePicture: { type: Object, default: null },
+            profilePictureAlt: {
+                  type: String,
+                  default: "User Profile Picture",
+            },
             bio: { type: String, maxlength: 500, default: "" },
             location: { type: String, maxlength: 100, default: "" },
             phone: {

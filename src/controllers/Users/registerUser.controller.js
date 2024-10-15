@@ -8,9 +8,6 @@ import bcrypt from "bcryptjs"; // For password hashing
 import crypto from "crypto"; // For generating verification tokens
 
 const registerUser = asyncHandler(async (req, res, next) => {
-      console.log(req.body);
-      console.log(req.files);
-
       const {
             userName,
             fullName,
@@ -80,8 +77,9 @@ const registerUser = asyncHandler(async (req, res, next) => {
             dateOfBirth,
             bio,
             location,
-            avatar: uploadProfilePicture,
-            avatarAlt: uploadProfilePicture.original_filename || "Avatar",
+            profilePicture: uploadProfilePicture,
+            profilePictureAlt:
+                  uploadProfilePicture.original_filename || "Avatar",
             emailVerificationToken,
       });
 
@@ -94,6 +92,8 @@ const registerUser = asyncHandler(async (req, res, next) => {
             user.email,
             emailVerificationToken
       );
+
+      console.log(verifyMailSend); // For debugging
 
       if (!verifyMailSend) {
             throw new apiErrorHandler(500, "Error sending verification email");
