@@ -1,5 +1,6 @@
 import { uploadFileCloudinary } from "../../FileHandler/Upload.js";
 import { User } from "../../models/user.model.js";
+import { sendVerificationEmail } from "../../Options/mailOptions.js";
 import { apiErrorHandler } from "../../utils/apiErrorHandler.js";
 import { apiResponse } from "../../utils/apiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
@@ -19,7 +20,6 @@ const registerUser = asyncHandler(async (req, res, next) => {
             dateOfBirth,
             bio,
             location,
-            workPost,
       } = req.body;
 
       // Validate required fields
@@ -57,7 +57,8 @@ const registerUser = asyncHandler(async (req, res, next) => {
             throw new apiErrorHandler(400, "Avatar is required");
       }
 
-      const uploadProfilePicture = await uploadFileCloudinary(profilePicturePath);
+      const uploadProfilePicture =
+            await uploadFileCloudinary(profilePicturePath);
       if (!uploadProfilePicture) {
             throw new apiErrorHandler(500, "Error uploading avatar");
       }
@@ -79,14 +80,23 @@ const registerUser = asyncHandler(async (req, res, next) => {
             dateOfBirth,
             bio,
             location,
-            workPost,
-            avatar: uploadProfilePicture.secure_url,
-            avatarAlt: uploadProfilePicture.original_filename,
+            avatar: uploadProfilePicture,
+            avatarAlt: uploadProfilePicture.original_filename || "Avatar",
             emailVerificationToken,
       });
 
       if (!user) {
             throw new apiErrorHandler(500, "Error registering user");
+      }
+
+      // Send verification email
+      const verifyMailSend = await sendVerificationEmail(
+            user.email,
+            emailVerificationToken
+      );
+
+      if (!verifyMailSend) {
+            throw new apiErrorHandler(500, "Error sending verification email");
       }
 
       const newUser = await User.findById(user._id).select(

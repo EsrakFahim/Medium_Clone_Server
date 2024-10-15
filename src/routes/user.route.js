@@ -1,0 +1,19 @@
+import { Router } from "express";
+import { upload } from "../middlewares/multer.middlewares.js";
+import { registerUser } from "../controllers/Users/registerUser.controller.js";
+
+const router = Router();
+
+// router.route("/").get(getAllUsers); // GET /api/users
+// router.route("/:_id").get(getSingleUser); // GET /api/users/:_id
+router.route("/register").post(
+      upload.fields([
+            {
+                  name: "profilePicture", // The key expected in the form data
+                  maxCount: 1, // Limits the number of files to 1
+            },
+      ]),
+      registerUser
+);
+
+export default router;

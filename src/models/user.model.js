@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import validator from "validator";
-import uniqueValidator from "mongoose-unique-validator";
 
 const userSchema = new Schema(
       {
@@ -11,6 +11,7 @@ const userSchema = new Schema(
                   minlength: [3, "User Name must be at least 3 characters"],
                   maxlength: [50, "User Name must be less than 50 characters"],
                   trim: true,
+                  unique: true,
             },
             fullName: {
                   type: String,
@@ -25,7 +26,7 @@ const userSchema = new Schema(
                   unique: true,
                   lowercase: true,
                   validate: {
-                        validator: (v) => validator.isEmail(v),
+                        validator: validator.isEmail,
                         message: (props) =>
                               `${props.value} is not a valid email address!`,
                   },
@@ -41,20 +42,9 @@ const userSchema = new Schema(
                   enum: ["user", "admin", "editor", "moderator"],
                   default: "user",
             },
-            profilePicture: {
-                  type: String,
-                  default: null,
-            },
-            bio: {
-                  type: String,
-                  maxlength: 500,
-                  default: "",
-            },
-            location: {
-                  type: String,
-                  maxlength: 100,
-                  default: "",
-            },
+            profilePicture: { type: String, default: null },
+            bio: { type: String, maxlength: 500, default: "" },
+            location: { type: String, maxlength: 100, default: "" },
             phone: {
                   type: String,
                   validate: {
@@ -62,77 +52,32 @@ const userSchema = new Schema(
                         message: (props) =>
                               `${props.value} is not a valid phone number!`,
                   },
-                  default: null,
+                  unique: true,
+                  sparse: true, // Allows null values without unique constraint errors
             },
-            dateOfBirth: {
-                  type: Date,
-                  default: null,
-            },
-            isVerified: {
-                  type: Boolean,
-                  default: false, // Indicates if the user has verified their email
-            },
-            emailVerificationToken: {
-                  type: String,
-                  select: false, // This token is used for verification processes
-            },
-            resetPasswordToken: {
-                  type: String,
-                  select: false,
-            },
-            resetPasswordExpires: {
-                  type: Date,
-                  select: false,
-            },
-            lastLogin: {
-                  type: Date, // Tracks the last login time
-                  default: null,
-            },
+            dateOfBirth: { type: Date, default: null },
+            isVerified: { type: Boolean, default: false },
+            emailVerificationToken: { type: String, select: false },
+            resetPasswordToken: { type: String, select: false },
+            resetPasswordExpires: { type: Date, select: false },
+            lastLogin: { type: Date, default: null },
             status: {
                   type: String,
                   enum: ["active", "inactive", "banned"],
-                  default: "active", // Indicates the account status
+                  default: "active",
             },
             preferences: {
                   darkMode: { type: Boolean, default: false },
                   language: { type: String, default: "en" },
             },
-            blogs: [
-                  {
-                        type: Schema.Types.ObjectId,
-                        ref: "Blog",
-                  },
-            ],
-            likedBlogs: [
-                  {
-                        type: Schema.Types.ObjectId,
-                        ref: "Blog",
-                  },
-            ],
-            bookmarks: [
-                  {
-                        type: Schema.Types.ObjectId,
-                        ref: "Blog",
-                  },
-            ],
+            blogs: [{ type: Schema.Types.ObjectId, ref: "Blog" }],
+            likedBlogs: [{ type: Schema.Types.ObjectId, ref: "Blog" }],
+            bookmarks: [{ type: Schema.Types.ObjectId, ref: "Blog" }],
             followingChannels: [
-                  {
-                        type: Schema.Types.ObjectId,
-                        ref: "Channel",
-                  },
+                  { type: Schema.Types.ObjectId, ref: "Channel" },
             ],
-            followers: [
-                  {
-                        type: Schema.Types.ObjectId,
-                        ref: "User",
-                  },
-            ],
-            following: [
-                  {
-                        type: Schema.Types.ObjectId,
-                        ref: "User",
-                  },
-            ],
+            followers: [{ type: Schema.Types.ObjectId, ref: "User" }],
+            following: [{ type: Schema.Types.ObjectId, ref: "User" }],
       },
       {
             timestamps: true,
@@ -148,10 +93,12 @@ const userSchema = new Schema(
       }
 );
 
-// Index for faster email lookups
-userSchema.index({ email: 1 });
+// Indexes for faster lookups
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ userName: 1 }, { unique: true });
+userSchema.index({ phone: 1 }, { unique: true, sparse: true });
 
-// Middleware to hash the password before saving
+// Hash the password before saving
 userSchema.pre("save", async function (next) {
       if (this.isModified("password")) {
             const salt = await bcrypt.genSalt(10);
@@ -160,7 +107,7 @@ userSchema.pre("save", async function (next) {
       next();
 });
 
-// Method to compare passwords during login
+// Compare passwords for login
 userSchema.methods.comparePassword = async function (candidatePassword) {
       return bcrypt.compare(candidatePassword, this.password);
 };
@@ -172,11 +119,18 @@ userSchema.methods.generatePasswordResetToken = function () {
             .createHash("sha256")
             .update(token)
             .digest("hex");
-      this.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+      this.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour expiry
       return token;
 };
 
-// Mongoose plugin to handle unique constraints
-userSchema.plugin(uniqueValidator, { message: "{PATH} already exists." });
+// Custom error handling for unique fields
+userSchema.post("save", function (error, doc, next) {
+      if (error.name === "MongoServerError" && error.code === 11000) {
+            const field = Object.keys(error.keyValue)[0];
+            next(new Error(`${field} already exists.`));
+      } else {
+            next(error);
+      }
+});
 
 export const User = mongoose.model("User", userSchema);

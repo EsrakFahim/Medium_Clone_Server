@@ -31,10 +31,15 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" })); // Parse URL-enc
 app.use(express.static("public")); // Serve static files
 
 // Import Routes
+import userRouter from "../src/routes/user.route.js";
 import imageRoute from "../src/routes/image.route.js";
 import blogRoute from "../src/routes/blog.route.js";
 
 // Use Routes
+
+// user route
+app.use("/api/v1/user", userRouter);
+
 app.use("/api/v1/image", imageRoute);
 app.use("/api/v1/blog", blogRoute);
 
