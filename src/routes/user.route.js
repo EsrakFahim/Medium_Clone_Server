@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { upload } from "../middlewares/multer.middlewares.js";
 import { registerUser } from "../controllers/Users/registerUser.controller.js";
+import { loginUser } from "../controllers/Users/loginUser.controller.js";
 
 const router = Router();
 
@@ -15,5 +16,6 @@ router.route("/register").post(
       ]),
       registerUser
 );
+router.route("/login").post(loginUser); // POST /api/users/login
 
 export default router;

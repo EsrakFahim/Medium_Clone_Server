@@ -5,8 +5,8 @@ import { transporter } from "../../Services/mailSender.js";
 import { apiErrorHandler } from "../../utils/apiErrorHandler.js";
 import { apiResponse } from "../../utils/apiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
-import bcrypt from "bcryptjs"; // For password hashing
 import crypto from "crypto"; // For generating verification tokens
+import bcrypt from "bcrypt"; // For hashing passwords
 
 const registerUser = asyncHandler(async (req, res, next) => {
       const {
@@ -106,7 +106,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
       return res
             .status(201)
             .json(
-                  new apiResponse(201, "User registered successfully", newUser)
+                  new apiResponse(201, newUser, "User registered successfully")
             );
 });
 

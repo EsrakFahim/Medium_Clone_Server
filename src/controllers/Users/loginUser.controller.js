@@ -5,50 +5,80 @@ import { User } from "../../models/user.model.js";
 import { generateToken } from "../../Function/generateToken.js";
 
 const loginUser = asyncHandler(async (req, res, next) => {
-      const { userName, userEmail, userPhone, userPassword } = req?.body;
+      const { email, password } = req.body;
 
-      if (
-            [userName, userEmail, userPassword, userPhone].some(
-                  (field) => field?.trim() === ""
-            )
-      ) {
-            throw new apiErrorHandler(400, "All fields are required");
+      console.log(email, password);
+
+      // Validate input
+      if (!email?.trim() || !password?.trim()) {
+            throw new apiErrorHandler(400, "Email and Password are required");
       }
 
+      // Find user by email with password included
       const user = await User.findOne({
-            $or: [{ userName }, { userEmail }],
-      });
+            $or: [{ email }],
+      }).select("+password");
+
+      console.log(user);
 
       if (!user) {
             throw new apiErrorHandler(404, "User not found");
       }
 
-      const isPasswordMatch = await user.isPasswordCorrect(userPassword);
-
+      // Verify the password
+      const isPasswordMatch = await user.isPasswordCorrect(password);
+      console.log(isPasswordMatch);
       if (!isPasswordMatch) {
             throw new apiErrorHandler(400, "Invalid credentials");
       }
 
-      const { accessToken, refreshToken } = await generateToken(user?._id);
-      console.log(refreshToken, accessToken);
-
-      if (!refreshToken || !accessToken) {
-            throw new apiErrorHandler(500, "Internal server error");
+      // Ensure the account is active
+      if (user.status !== "active") {
+            throw new apiErrorHandler(403, "Account is not active");
       }
 
-      const loggedInUser = await User.findOne({ _id: user?._id }).select(
-            "-userPassword -otp -otpExpiry -refreshToken -accessToken"
+      // Ensure the email is verified
+      if (!user.isVerified) {
+            throw new apiErrorHandler(403, "Please verify your email");
+      }
+
+      // Generate access and refresh tokens
+      const { accessToken, refreshToken } = generateToken(user._id);
+
+      if (!accessToken || !refreshToken) {
+            throw new apiErrorHandler(
+                  500,
+                  "Failed to generate authentication tokens"
+            );
+      }
+
+      // Update the user's last login date and refresh token
+      user.lastLogin = new Date();
+      user.refreshToken = refreshToken;
+      await user.save();
+
+      // Select fields to return in the response
+      const loggedInUser = await User.findById(user._id).select(
+            "-password -emailVerificationToken -resetPasswordToken -resetPasswordExpires"
       );
 
-      const option = {
+      const cookieOptions = {
             httpOnly: true,
-            secure: true,
+            secure: process.env.NODE_ENV === "production", // Only secure in production
+            sameSite: "Strict",
       };
 
+      // Send cookies and JSON response
       return res
             .status(200)
-            .cookie("refreshToken", refreshToken, option)
-            .cookie("accessToken", accessToken, option)
+            .cookie("refreshToken", refreshToken, {
+                  ...cookieOptions,
+                  maxAge: 7 * 24 * 60 * 60 * 1000,
+            }) // 7 days
+            .cookie("accessToken", accessToken, {
+                  ...cookieOptions,
+                  maxAge: 15 * 60 * 1000,
+            }) // 15 minutes
             .json(
                   new apiResponse(
                         200,
@@ -59,34 +89,26 @@ const loginUser = asyncHandler(async (req, res, next) => {
 });
 
 const logoutUser = asyncHandler(async (req, res, next) => {
-      const userLogout = await User.findByIdAndUpdate(
-            req?.user?._id,
-            {
-                  $set: {
-                        refreshToken: "",
-                        accessToken: "",
-                  },
-            },
-            {
-                  new: true,
-            }
-      );
+      const { user } = req;
 
-      console.log("from logout", userLogout);
-
-      if (!userLogout) {
-            throw new apiErrorHandler(500, "Internal server error");
+      if (!user) {
+            throw new apiErrorHandler(401, "Not authenticated");
       }
 
-      const option = {
+      // Clear refresh token from the user's record
+      await User.findByIdAndUpdate(user._id, { refreshToken: "" });
+
+      const cookieOptions = {
             httpOnly: true,
-            secure: true,
+            secure: process.env.NODE_ENV === "production", // Only secure in production
+            sameSite: "Strict",
       };
 
+      // Clear cookies and return a success message
       return res
             .status(200)
-            .clearCookie("refreshToken", option)
-            .clearCookie("accessToken", option)
+            .clearCookie("refreshToken", cookieOptions)
+            .clearCookie("accessToken", cookieOptions)
             .json(new apiResponse(200, {}, "Logout successful"));
 });
 

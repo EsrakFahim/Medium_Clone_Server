@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
-import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import validator from "validator";
+import bcrypt from "bcrypt";
 
 const userSchema = new Schema(
       {
@@ -35,7 +35,7 @@ const userSchema = new Schema(
                   type: String,
                   required: [true, "Password is required"],
                   minlength: [6, "Password must be at least 6 characters"],
-                  select: false,
+                  // select: false,
             },
             role: {
                   type: String,
@@ -106,14 +106,18 @@ userSchema.index({ phone: 1 }, { unique: true, sparse: true });
 userSchema.pre("save", async function (next) {
       if (this.isModified("password")) {
             const salt = await bcrypt.genSalt(10);
-            this.password = await bcrypt.hash(this.password, salt);
+            const hashedPassword = await bcrypt.hash(this.password, salt);
+            console.log("Hashed Password:", hashedPassword); // Debugging
+            this.password = hashedPassword;
       }
       next();
 });
 
 // Compare passwords for login
-userSchema.methods.comparePassword = async function (candidatePassword) {
-      return bcrypt.compare(candidatePassword, this.password);
+userSchema.methods.isPasswordCorrect = async function (candidatePassword) {
+      console.log("Comparing:", candidatePassword, this.password); // Debugging
+      if (!this.password) throw new Error("Password is not set");
+      return await bcrypt.compare(candidatePassword, this.password);
 };
 
 // Generate a token for password reset
