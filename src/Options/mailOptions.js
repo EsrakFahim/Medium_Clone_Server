@@ -1,5 +1,3 @@
-import { transporter } from "../Services/mailSender.js";
-
 export const sendVerificationEmail = async (userEmail, token) => {
       const verificationUrl = `${process.env.SITE_ORIGIN_LOCAL}/verify-email/${token}`;
 
@@ -14,6 +12,5 @@ export const sendVerificationEmail = async (userEmail, token) => {
                   <p>If you did not request this, please ignore this email.</p>
             `,
       };
-
-      await transporter.sendMail(mailOptions);
+      return mailOptions;
 };

@@ -1,6 +1,7 @@
 import { uploadFileCloudinary } from "../../FileHandler/Upload.js";
 import { User } from "../../models/user.model.js";
 import { sendVerificationEmail } from "../../Options/mailOptions.js";
+import { transporter } from "../../Services/mailSender.js";
 import { apiErrorHandler } from "../../utils/apiErrorHandler.js";
 import { apiResponse } from "../../utils/apiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
@@ -92,10 +93,9 @@ const registerUser = asyncHandler(async (req, res, next) => {
             user.email,
             emailVerificationToken
       );
+      const mailSenderFn = await transporter.sendMail(verifyMailSend);
 
-      console.log(verifyMailSend); // For debugging
-
-      if (!verifyMailSend) {
+      if (!mailSenderFn) {
             throw new apiErrorHandler(500, "Error sending verification email");
       }
 
