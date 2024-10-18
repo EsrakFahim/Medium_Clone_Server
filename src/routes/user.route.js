@@ -6,6 +6,7 @@ import {
       logoutUser,
 } from "../controllers/Users/loginUser.controller.js";
 import { verifyJWT } from "../middlewares/verifyJWT.middlewares.js";
+import { forgetPassword } from "../controllers/Users/forgetPassword.controller.js";
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.route("/register").post(
 );
 router.route("/login").post(loginUser); // POST /api/users/
 router.route("/logout").get(verifyJWT, logoutUser); // GET /api/users/logout
+router.route("/forgot-password").post(verifyJWT, forgetPassword); // POST /api/users/forgot-password
 
 export default router;

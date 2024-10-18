@@ -64,8 +64,10 @@ const userSchema = new Schema(
             dateOfBirth: { type: Date, default: null },
             isVerified: { type: Boolean, default: false },
             emailVerificationToken: { type: String, select: false },
-            resetPasswordToken: { type: String, select: false },
-            resetPasswordExpires: { type: Date, select: false },
+            resetPasswordToken: { type: String, select: false }, // Select false hides the field from query results
+            resetPasswordExpires: { type: Date, select: false }, // Select false hides the field from query results
+            otp: { type: String, select: false }, // Select false hides the field from query results
+            otpExpiry: { type: Date, select: false }, // Select false hides the field from query results
             accessToken: { type: String, select: false },
             refreshToken: { type: String, select: false },
             lastLogin: { type: Date, default: null },

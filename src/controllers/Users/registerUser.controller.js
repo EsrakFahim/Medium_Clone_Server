@@ -5,8 +5,8 @@ import { transporter } from "../../Services/mailSender.js";
 import { apiErrorHandler } from "../../utils/apiErrorHandler.js";
 import { apiResponse } from "../../utils/apiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
-import crypto from "crypto"; // For generating verification tokens
-import bcrypt from "bcrypt"; // For hashing passwords
+import crypto from "crypto";
+import bcrypt from "bcrypt";
 
 const registerUser = asyncHandler(async (req, res, next) => {
       const {
@@ -34,34 +34,38 @@ const registerUser = asyncHandler(async (req, res, next) => {
             );
       }
 
-      // Parallel query to check if the user already exists
-      const [existingUserByEmail, existingUserByPhone, existingUserByUsername] =
-            await Promise.all([
-                  User.findOne({ email }).lean(),
-                  User.findOne({ phone }).lean(),
-                  User.findOne({ userName }).lean(),
-            ]);
+      // Use a single query to check for existing users
+      const existingUser = await User.findOne({
+            $or: [{ email }, { phone }, { userName }],
+      }).lean();
 
-      if (existingUserByEmail)
-            return next(new apiErrorHandler(400, "Email already exists"));
-      if (existingUserByPhone)
-            return next(
-                  new apiErrorHandler(400, "Phone number already exists")
-            );
-      if (existingUserByUsername)
-            return next(new apiErrorHandler(400, "Username already exists"));
+      if (existingUser) {
+            if (existingUser.email === email) {
+                  return next(new apiErrorHandler(400, "Email already exists"));
+            }
+            if (existingUser.phone === phone) {
+                  return next(
+                        new apiErrorHandler(400, "Phone number already exists")
+                  );
+            }
+            if (existingUser.userName === userName) {
+                  return next(
+                        new apiErrorHandler(400, "Username already exists")
+                  );
+            }
+      }
 
-      // Check and handle avatar upload
+      // Validate and handle avatar upload
       const profilePicturePath = req.files?.profilePicture?.[0]?.path;
       if (!profilePicturePath) {
             return next(new apiErrorHandler(400, "Avatar is required"));
       }
 
-      // Run avatar upload, password hash, and token generation in parallel
+      // Run avatar upload, password hashing, and token generation in parallel
       const [uploadProfilePicture, hashedPassword, emailVerificationToken] =
             await Promise.all([
                   uploadFileCloudinary(profilePicturePath),
-                  bcrypt.hash(password, 10), // Salt rounds directly inside hash call
+                  bcrypt.hash(password, 10),
                   crypto.randomBytes(32).toString("hex"),
             ]);
 
@@ -69,7 +73,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
             return next(new apiErrorHandler(500, "Error uploading avatar"));
       }
 
-      // Create the user
+      // Create the user record
       const user = await User.create({
             userName,
             fullName,
@@ -85,11 +89,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
             emailVerificationToken,
       });
 
-      if (!user) {
-            return next(new apiErrorHandler(500, "Error registering user"));
-      }
-
-      // Send the verification email asynchronously (no need to wait for it to finish)
+      // Send the verification email asynchronously
       transporter
             .sendMail(
                   await sendVerificationEmail(
@@ -101,12 +101,14 @@ const registerUser = asyncHandler(async (req, res, next) => {
                   console.error("Error sending verification email:", err)
             );
 
-      // Fetch the user without sensitive fields
-      const newUser = await User.findById(user._id).select(
-            "-password -emailVerificationToken -resetPasswordToken -resetPasswordExpires"
-      );
+      // Fetch the new user without sensitive fields
+      const newUser = await User.findById(user._id)
+            .select(
+                  "-password -emailVerificationToken -resetPasswordToken -resetPasswordExpires"
+            )
+            .lean();
 
-      // Return the response immediately
+      // Send the response immediately
       res.status(201).json(
             new apiResponse(201, newUser, "User registered successfully")
       );
