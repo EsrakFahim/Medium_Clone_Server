@@ -2,6 +2,7 @@ import { User } from "../models/user.model.js";
 import { apiErrorHandler } from "../utils/apiErrorHandler.js";
 
 const generateToken = async (user_id) => {
+      console.log("from token generator", user_id);
       try {
             const user = await User.findOne({ _id: user_id });
             const accessToken = await user.generateAccessToken();

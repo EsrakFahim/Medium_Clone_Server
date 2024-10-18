@@ -7,8 +7,6 @@ import { generateToken } from "../../Function/generateToken.js";
 const loginUser = asyncHandler(async (req, res, next) => {
       const { email, password } = req.body;
 
-      console.log(email, password);
-
       // Validate input
       if (!email?.trim() || !password?.trim()) {
             throw new apiErrorHandler(400, "Email and Password are required");
@@ -18,8 +16,6 @@ const loginUser = asyncHandler(async (req, res, next) => {
       const user = await User.findOne({
             $or: [{ email }],
       }).select("+password");
-
-      console.log(user?.password);
 
       if (!user) {
             throw new apiErrorHandler(404, "User not found");
@@ -43,7 +39,7 @@ const loginUser = asyncHandler(async (req, res, next) => {
       }
 
       // Generate access and refresh tokens
-      const { accessToken, refreshToken } = generateToken(user._id);
+      const { accessToken, refreshToken } = await generateToken(user._id);
 
       if (!accessToken || !refreshToken) {
             throw new apiErrorHandler(
@@ -92,6 +88,8 @@ const loginUser = asyncHandler(async (req, res, next) => {
 
 const logoutUser = asyncHandler(async (req, res, next) => {
       const { user } = req;
+
+      console.log(user);
 
       if (!user) {
             throw new apiErrorHandler(401, "Not authenticated");

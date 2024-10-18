@@ -2,6 +2,8 @@ import mongoose, { Schema } from "mongoose";
 import crypto from "crypto";
 import validator from "validator";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { access } from "fs";
 
 const userSchema = new Schema(
       {
@@ -64,6 +66,8 @@ const userSchema = new Schema(
             emailVerificationToken: { type: String, select: false },
             resetPasswordToken: { type: String, select: false },
             resetPasswordExpires: { type: Date, select: false },
+            accessToken: { type: String, select: false },
+            refreshToken: { type: String, select: false },
             lastLogin: { type: Date, default: null },
             status: {
                   type: String,
@@ -135,5 +139,34 @@ userSchema.post("save", function (error, doc, next) {
             next(error);
       }
 });
+
+// Generate access token
+userSchema.methods.generateAccessToken = function () {
+      return jwt.sign(
+            {
+                  _id: this._id,
+                  userEmail: this.email,
+                  userName: this.userName,
+                  role: this.role,
+            },
+            process.env.ACCESS_TOKEN_SECRET,
+            {
+                  expiresIn: process.env.ACCESS_TOKEN_SECRET_EXPIRES_IN,
+            }
+      );
+};
+
+// Generate refresh token
+userSchema.methods.generateRefreshToken = function () {
+      return jwt.sign(
+            {
+                  _id: this._id,
+            },
+            process.env.REFRESH_TOKEN_SECRET,
+            {
+                  expiresIn: process.env.REFRESH_TOKEN_SECRET_EXPIRES_IN,
+            }
+      );
+};
 
 export const User = mongoose.model("User", userSchema);

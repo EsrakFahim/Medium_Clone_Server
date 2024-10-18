@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv"; // For environment variables
+import cookieParser from "cookie-parser";
 
 dotenv.config(); // Load environment variables
 
@@ -25,7 +26,7 @@ app.use(
             },
       })
 );
-
+app.use(cookieParser()); // Enable cookie parsing
 app.use(express.json({ limit: "50mb" })); // Parse JSON requests
 app.use(express.urlencoded({ extended: true, limit: "50mb" })); // Parse URL-encoded data
 app.use(express.static("public")); // Serve static files
