@@ -104,20 +104,15 @@ userSchema.index({ phone: 1 }, { unique: true, sparse: true });
 
 // Hash the password before saving
 userSchema.pre("save", async function (next) {
-      if (this.isModified("password")) {
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(this.password, salt);
-            console.log("Hashed Password:", hashedPassword); // Debugging
-            this.password = hashedPassword;
-      }
+      if (this.isModified("userPassword"))
+            this.userPassword = await bcrypt.hash(this.userPassword, 10);
       next();
 });
 
 // Compare passwords for login
-userSchema.methods.isPasswordCorrect = async function (candidatePassword) {
-      console.log("Comparing:", candidatePassword, this.password); // Debugging
-      if (!this.password) throw new Error("Password is not set");
-      return await bcrypt.compare(candidatePassword, this.password);
+userSchema.methods.isPasswordCorrect = async function (password) {
+      console.log(password, this.password);
+      return await bcrypt.compare(password, this.password);
 };
 
 // Generate a token for password reset

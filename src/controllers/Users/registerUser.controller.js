@@ -26,49 +26,50 @@ const registerUser = asyncHandler(async (req, res, next) => {
                   (field) => !field?.trim()
             )
       ) {
-            throw new apiErrorHandler(
-                  400,
-                  "All required fields must be provided"
+            return next(
+                  new apiErrorHandler(
+                        400,
+                        "All required fields must be provided"
+                  )
             );
       }
 
-      // Check if the user already exists
-      const existingUser = await User.findOne({
-            $or: [{ email }, { phone }, { userName }],
-      });
+      // Parallel query to check if the user already exists
+      const [existingUserByEmail, existingUserByPhone, existingUserByUsername] =
+            await Promise.all([
+                  User.findOne({ email }).lean(),
+                  User.findOne({ phone }).lean(),
+                  User.findOne({ userName }).lean(),
+            ]);
 
-      if (existingUser) {
-            if (existingUser.email === email) {
-                  throw new apiErrorHandler(400, "Email already exists");
-            }
-            if (existingUser.phone === phone) {
-                  throw new apiErrorHandler(400, "Phone number already exists");
-            }
-            if (existingUser.userName === userName) {
-                  throw new apiErrorHandler(400, "Username already exists");
-            }
-      }
+      if (existingUserByEmail)
+            return next(new apiErrorHandler(400, "Email already exists"));
+      if (existingUserByPhone)
+            return next(
+                  new apiErrorHandler(400, "Phone number already exists")
+            );
+      if (existingUserByUsername)
+            return next(new apiErrorHandler(400, "Username already exists"));
 
-      // Handle avatar upload
+      // Check and handle avatar upload
       const profilePicturePath = req.files?.profilePicture?.[0]?.path;
       if (!profilePicturePath) {
-            throw new apiErrorHandler(400, "Avatar is required");
+            return next(new apiErrorHandler(400, "Avatar is required"));
       }
 
-      const uploadProfilePicture =
-            await uploadFileCloudinary(profilePicturePath);
+      // Run avatar upload, password hash, and token generation in parallel
+      const [uploadProfilePicture, hashedPassword, emailVerificationToken] =
+            await Promise.all([
+                  uploadFileCloudinary(profilePicturePath),
+                  bcrypt.hash(password, 10), // Salt rounds directly inside hash call
+                  crypto.randomBytes(32).toString("hex"),
+            ]);
+
       if (!uploadProfilePicture) {
-            throw new apiErrorHandler(500, "Error uploading avatar");
+            return next(new apiErrorHandler(500, "Error uploading avatar"));
       }
 
-      // Hash the password
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
-
-      // Generate email verification token
-      const emailVerificationToken = crypto.randomBytes(32).toString("hex");
-
-      // Create the user in the database
+      // Create the user
       const user = await User.create({
             userName,
             fullName,
@@ -85,29 +86,30 @@ const registerUser = asyncHandler(async (req, res, next) => {
       });
 
       if (!user) {
-            throw new apiErrorHandler(500, "Error registering user");
+            return next(new apiErrorHandler(500, "Error registering user"));
       }
 
-      // Send verification email
-      const verifyMailSend = await sendVerificationEmail(
-            user.email,
-            emailVerificationToken
-      );
-      const mailSenderFn = await transporter.sendMail(verifyMailSend);
+      // Send the verification email asynchronously (no need to wait for it to finish)
+      transporter
+            .sendMail(
+                  await sendVerificationEmail(
+                        user.email,
+                        emailVerificationToken
+                  )
+            )
+            .catch((err) =>
+                  console.error("Error sending verification email:", err)
+            );
 
-      if (!mailSenderFn) {
-            throw new apiErrorHandler(500, "Error sending verification email");
-      }
-
+      // Fetch the user without sensitive fields
       const newUser = await User.findById(user._id).select(
             "-password -emailVerificationToken -resetPasswordToken -resetPasswordExpires"
       );
 
-      return res
-            .status(201)
-            .json(
-                  new apiResponse(201, newUser, "User registered successfully")
-            );
+      // Return the response immediately
+      res.status(201).json(
+            new apiResponse(201, newUser, "User registered successfully")
+      );
 });
 
 export { registerUser };

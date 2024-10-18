@@ -19,7 +19,7 @@ const loginUser = asyncHandler(async (req, res, next) => {
             $or: [{ email }],
       }).select("+password");
 
-      console.log(user);
+      console.log(user?.password);
 
       if (!user) {
             throw new apiErrorHandler(404, "User not found");
@@ -55,7 +55,9 @@ const loginUser = asyncHandler(async (req, res, next) => {
       // Update the user's last login date and refresh token
       user.lastLogin = new Date();
       user.refreshToken = refreshToken;
-      await user.save();
+      await user.save({
+            validateBeforeSave: false,
+      });
 
       // Select fields to return in the response
       const loggedInUser = await User.findById(user._id).select(
