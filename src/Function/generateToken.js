@@ -5,6 +5,7 @@ const generateToken = async (user_id) => {
       console.log("from token generator", user_id);
       try {
             const user = await User.findOne({ _id: user_id });
+            console.log("from token generator", user);
             const accessToken = await user.generateAccessToken();
             const refreshToken = await user.generateRefreshToken();
 
