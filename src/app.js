@@ -7,25 +7,28 @@ dotenv.config(); // Load environment variables
 
 const app = express();
 
-// Allowed origins for CORS
 const allowedOrigins = [
       process.env.SITE_ORIGIN_PROD, // Production frontend
       process.env.SITE_ORIGIN_LOCAL, // Local development frontend
 ];
 
-// CORS Middleware (without credentials)
+// CORS Middleware (with credentials)
 app.use(
       cors({
             origin: (origin, callback) => {
-                  // Allow requests from allowed origins or non-browser requests
                   if (!origin || allowedOrigins.includes(origin)) {
-                        callback(null, true);
+                        callback(null, true); // Allow request
                   } else {
-                        callback(new Error("Not allowed by CORS")); // Reject others
+                        callback(new Error("Not allowed by CORS")); // Reject request
                   }
             },
+            credentials: true, // Allow credentials (cookies)
       })
 );
+
+// Enable JSON body parsing
+app.use(express.json());
+
 app.use(cookieParser()); // Enable cookie parsing
 app.use(express.json({ limit: "50mb" })); // Parse JSON requests
 app.use(express.urlencoded({ extended: true, limit: "50mb" })); // Parse URL-encoded data
